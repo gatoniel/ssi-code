@@ -1,3 +1,7 @@
+# !!! ATTENTION !!!
+
+This is a fork of the repository at https://github.com/gatoniel/ssi-code
+
 ![](https://raw.githubusercontent.com/royerlab/ssi-code/master/videos/release/ssi-paper-release_twitter.gif)
 
 # Image Deconvolution via Noise-Tolerant Self-Supervised Inversion
