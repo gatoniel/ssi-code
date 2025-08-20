@@ -1,4 +1,4 @@
-from ssi.utils.normaliser.base import NormaliserBase
+from .base import NormaliserBase
 
 
 class IdentityNormaliser(NormaliserBase):

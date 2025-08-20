@@ -1,42 +1,42 @@
+import torch
 import gc
 import math
 from abc import ABC, abstractmethod
 import numpy
 import psutil
 
-from ssi.utils.array.nd import nd_split_slices, remove_margin_slice
-from ssi.utils.log.log import lsection, lprint
-from ssi.utils.normaliser.identity import IdentityNormaliser
-from ssi.utils.offcore.offcore import offcore_array
+from .utils.array.nd import nd_split_slices, remove_margin_slice
+from .utils.log.log import lsection, lprint
+from .utils.normaliser.identity import IdentityNormaliser
+from .utils.offcore.offcore import offcore_array
 
 
 class ImageTranslatorBase(ABC):
-    """Image Translator base class
-    """
+    """Image Translator base class"""
 
     def __init__(
-            self,
-            normaliser_type='identity',
-            normaliser_transform=None,
-            normaliser_clip=True,
-            monitor=None,
-            blind_spots=None,
-            tile_min_margin=8,
-            tile_max_margin=None,
-            padding=0,
-            padding_mode=None,
-            max_memory_usage_ratio=0.9,
-            max_tilling_overhead=0.1,
+        self,
+        normaliser_type="identity",
+        normaliser_transform=None,
+        normaliser_clip=True,
+        monitor=None,
+        blind_spots=None,
+        tile_min_margin=8,
+        tile_max_margin=None,
+        padding=0,
+        padding_mode=None,
+        max_memory_usage_ratio=0.9,
+        max_tilling_overhead=0.1,
     ):
         """
         :param normaliser_type: can have one of three values; 'identity','percentile' and 'minmax'
         :param monitor: monitor object, has to be instance of it.monitor.Monitor class
         """
         # Instantiates normaliser(s):
-        if normaliser_type == 'identity':
+        if normaliser_type == "identity":
             self.normalizer_class = IdentityNormaliser
         else:
-            raise ValueError('Unknown normalizer type passed!')
+            raise ValueError("Unknown normalizer type passed!")
         self.normaliser_transform = normaliser_transform
         self.normaliser_clip = normaliser_clip
 
@@ -50,7 +50,7 @@ class ImageTranslatorBase(ABC):
 
         self.max_memory_usage_ratio = max_memory_usage_ratio
         self.max_tilling_overhead = max_tilling_overhead
-        self.max_voxels_per_tile = 320 ** 3
+        self.max_voxels_per_tile = 320**3
 
         self.callback_period = 3
         self.last_callback_time_sec = -math.inf
@@ -59,7 +59,7 @@ class ImageTranslatorBase(ABC):
 
     @abstractmethod
     def _train(
-            self, input_image, target_image, train_valid_ratio, callback_period, jinv
+        self, input_image, target_image, train_valid_ratio, callback_period, jinv
     ):
         """This function supposed to take normalized input image only
         :param input_image:
@@ -83,14 +83,14 @@ class ImageTranslatorBase(ABC):
         return 0, psutil.virtual_memory().total
 
     def train(
-            self,
-            input_image,
-            target_image=None,
-            batch_dims=None,
-            channel_dims=None,
-            train_valid_ratio=0.1,
-            callback_period=3,
-            jinv=None,
+        self,
+        input_image,
+        target_image=None,
+        batch_dims=None,
+        channel_dims=None,
+        train_valid_ratio=0.1,
+        callback_period=3,
+        jinv=None,
     ):
         """Train to translate a given input image to a given output image.
         This has a lot of the machinery for batching and more...
@@ -100,32 +100,31 @@ class ImageTranslatorBase(ABC):
             target_image = input_image
 
         with lsection(
-                f"Learning to translate from image of dimensions {str(input_image.shape)} to {str(target_image.shape)} ."
+            f"Learning to translate from image of dimensions {str(input_image.shape)} to {str(target_image.shape)} ."
         ):
-
-            lprint('Running garbage collector...')
+            lprint("Running garbage collector...")
             gc.collect()
 
             # If we use the same image for input and output then we are in a self-supervised setting:
             self.self_supervised = input_image is target_image
 
             if self.self_supervised:
-                lprint('Training is self-supervised.')
+                lprint("Training is self-supervised.")
             else:
-                lprint('Training is supervised.')
+                lprint("Training is supervised.")
 
             if batch_dims is None:  # set default batch_dim value:
                 batch_dims = (False,) * len(input_image.shape)
 
             self.input_normaliser = self.normalizer_class(
-                transform=self.normaliser_transform,
-                clip=self.normaliser_clip
+                transform=self.normaliser_transform, clip=self.normaliser_clip
             )
             self.target_normaliser = (
                 self.input_normaliser
                 if self.self_supervised
-                else self.normalizer_class(transform=self.normaliser_transform,
-                                           clip=self.normaliser_clip)
+                else self.normalizer_class(
+                    transform=self.normaliser_transform, clip=self.normaliser_clip
+                )
             )
 
             # Calibrates normaliser(s):
@@ -151,24 +150,25 @@ class ImageTranslatorBase(ABC):
             normalised_input_image = self._pad_norm_image(normalised_input_image)
             normalised_target_image = self._pad_norm_image(normalised_target_image)
 
-            self._train(
-                normalised_input_image,
-                normalised_target_image,
-                train_valid_ratio=train_valid_ratio,
-                callback_period=callback_period,
-                jinv=jinv,
-            )
+            with torch.autograd.set_detect_anomaly(True):
+                self._train(
+                    normalised_input_image,
+                    normalised_target_image,
+                    train_valid_ratio=train_valid_ratio,
+                    callback_period=callback_period,
+                    jinv=jinv,
+                )
 
     def translate(
-            self,
-            input_image,
-            translated_image=None,
-            batch_dims=None,
-            channel_dims=None,
-            tile_size=None,
-            denormalise_values=True,
-            leave_as_float=False,
-            clip=True,
+        self,
+        input_image,
+        translated_image=None,
+        batch_dims=None,
+        channel_dims=None,
+        tile_size=None,
+        denormalise_values=True,
+        leave_as_float=False,
+        clip=True,
     ):
         """
         Translates an input image into an output image according to the learned function.
@@ -181,9 +181,8 @@ class ImageTranslatorBase(ABC):
         """
 
         with lsection(
-                f"Predicting output image from input image of dimension {input_image.shape}"
+            f"Predicting output image from input image of dimension {input_image.shape}"
         ):
-
             # set default batch_dim and channel_dim values:
             if batch_dims is None:
                 batch_dims = (False,) * len(input_image.shape)
@@ -229,7 +228,6 @@ class ImageTranslatorBase(ABC):
                 )
 
             else:
-
                 # We do need to do tiled inference because of a lack of memory
                 # or because a small batch size was requested:
 
@@ -267,9 +265,8 @@ class ImageTranslatorBase(ABC):
                 counter = 1
                 for slice_margin_tuple, slice_tuple in slicezip:
                     with lsection(
-                            f"Current tile: {counter}/{number_of_tiles}, slice: {slice_tuple} "
+                        f"Current tile: {counter}/{number_of_tiles}, slice: {slice_tuple} "
                     ):
-
                         # We first extract the tile image:
                         input_image_tile = normalised_input_image[
                             slice_margin_tuple
@@ -293,7 +290,7 @@ class ImageTranslatorBase(ABC):
                         # if the array is already provided, it must of course have the right dimensions...
                         if normalised_translated_image is None:
                             translated_image_shape = (
-                                    normalised_input_image.shape[:2] + spatiotemp_shape
+                                normalised_input_image.shape[:2] + spatiotemp_shape
                             )
                             normalised_translated_image = offcore_array(
                                 shape=translated_image_shape,
@@ -303,9 +300,9 @@ class ImageTranslatorBase(ABC):
 
                         # We plug in the batch without margins into the destination image:
                         lprint(f"Inserting translated batch into result image...")
-                        normalised_translated_image[
-                            slice_tuple
-                        ] = translated_image_tile[remove_margin_slice_tuple]
+                        normalised_translated_image[slice_tuple] = (
+                            translated_image_tile[remove_margin_slice_tuple]
+                        )
 
                         counter += 1
 
@@ -340,7 +337,7 @@ class ImageTranslatorBase(ABC):
             padded_normalised_input_image = numpy.pad(
                 normalised_input_image,
                 pad_width=tuple(padding),
-                mode='constant' if self.padding_mode is None else self.padding_mode
+                mode="constant" if self.padding_mode is None else self.padding_mode,
                 # constant_values=value
             )
             return padded_normalised_input_image
@@ -362,17 +359,15 @@ class ImageTranslatorBase(ABC):
         return normalised_translated_image
 
     def _get_tilling_strategy_and_margins(
-            self,
-            image,
-            max_voxels_per_tile,
-            min_margin,
-            max_margin,
-            suggested_tile_size=None,
+        self,
+        image,
+        max_voxels_per_tile,
+        min_margin,
+        max_margin,
+        suggested_tile_size=None,
     ):
-
         # We will store the batch strategy as a list of integers representing the number of chunks per dimension:
         with lsection(f"Determine tilling strategy:"):
-
             suggested_tile_size = (
                 math.inf if suggested_tile_size is None else suggested_tile_size
             )
@@ -412,7 +407,7 @@ class ImageTranslatorBase(ABC):
 
             # how much do we have to tile because of the suggested tile size?
             split_factor_suggested_tile_size = image.size / (
-                    suggested_tile_size ** num_spatio_temp_dim
+                suggested_tile_size**num_spatio_temp_dim
             )
             lprint(
                 f"How much do we need to tile because of the suggested tile size? : {split_factor_suggested_tile_size} times."
@@ -442,7 +437,7 @@ class ImageTranslatorBase(ABC):
 
                 # let's split the dimensions in a way proportional to their lengths:
                 split_per_dim = (rest_split_factor / numpy.prod(shape[2:])) ** (
-                        1 / num_spatio_temp_dim
+                    1 / num_spatio_temp_dim
                 )
 
                 spatiotemp_tilling_strategy = tuple(
@@ -459,7 +454,6 @@ class ImageTranslatorBase(ABC):
                 corrected_tilling_strategy = []
                 split_factor_reached = False
                 for i, s in enumerate(tilling_strategy):
-
                     if split_factor_reached:
                         corrected_tilling_strategy.append(1)
                     else:
@@ -495,7 +489,7 @@ class ImageTranslatorBase(ABC):
             # We automatically set the margin of the tile size:
             # the max-margin factor guarantees that tilling will incur no more than a given max tiling overhead:
             margin_factor = 0.5 * (
-                    ((1 + self.max_tilling_overhead) ** (1 / num_spatiotemp_dim)) - 1
+                ((1 + self.max_tilling_overhead) ** (1 / num_spatiotemp_dim)) - 1
             )
             margins = tuple(int(s * margin_factor) for s in estimated_tile_shape)
 
