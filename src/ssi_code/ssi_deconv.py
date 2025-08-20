@@ -120,7 +120,7 @@ class SSIDeconvolution(PTCNNImageTranslator):
         if self.bounds_loss and self.bounds_loss != 0:
             epsilon = 0 * 1e-8
             bounds_loss = F.relu(-translated_image - epsilon)
-            bounds_loss += F.relu(translated_image - 1 - epsilon)
+            bounds_loss = bounds_loss + F.relu(translated_image - 1 - epsilon)
             bounds_loss_value = bounds_loss.mean()
             lprint(f"bounds_loss_value = {bounds_loss_value}")
             loss += self.bounds_loss * bounds_loss_value**2
@@ -135,13 +135,13 @@ class SSIDeconvolution(PTCNNImageTranslator):
                 num_elements**2
             )  # /torch.norm(image_for_loss, dim=(2, 3), keepdim=True, p=1)
             lprint(f"sharpening loss = {sharpening_loss}")
-            loss += self.sharpening * sharpening_loss.mean()
+            loss = loss + self.sharpening * sharpening_loss.mean()
 
         # Max entropy loss:
         if self.entropy and self.entropy != 0:
             entropy_value = entropy(translated_image)
             lprint(f"entropy_value = {entropy_value}")
-            loss += -self.entropy * entropy_value
+            loss = loss - self.entropy * entropy_value
 
         return loss
 

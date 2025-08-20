@@ -380,7 +380,9 @@ class PTCNNImageTranslator(ImageTranslatorBase):
                             translated_images_gpu, forward_model_images_gpu
                         )
                         if additional_loss_value is not None:
-                            translation_loss_value += additional_loss_value
+                            translation_loss_value = (
+                                additional_loss_value + translation_loss_value
+                            )
 
                         # backpropagation:
                         translation_loss_value.backward()
@@ -392,7 +394,9 @@ class PTCNNImageTranslator(ImageTranslatorBase):
                         self.model.post_optimisation()
 
                         # update training loss_deconvolution for whole image:
-                        train_loss_value += translation_loss_value.item()
+                        train_loss_value = (
+                            train_loss_value + translation_loss_value.item()
+                        )
                         iteration += 1
 
                         # Validation:
