@@ -1943,8 +1943,11 @@ name = "ssi-code"
 version = "0.0.2"
 source = { editable = "." }
 dependencies = [
+    { name = "decorator" },
     { name = "gdown" },
     { name = "numexpr" },
+    { name = "psutil" },
+    { name = "scikit-image" },
     { name = "scipy" },
 ]
 
@@ -1960,8 +1963,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "decorator", specifier = ">=5.2.1" },
     { name = "gdown", specifier = ">=5.2.0" },
     { name = "numexpr", specifier = ">=2.11.0" },
+    { name = "psutil", specifier = ">=7.0.0" },
+    { name = "scikit-image", specifier = ">=0.25.2" },
     { name = "scipy", specifier = ">=1.16.1" },
 ]
 
