@@ -20,6 +20,7 @@ requires-python = ">=3.12"
 dependencies = [
     "gdown>=5.2.0",
     "numexpr>=2.11.0",
+    "scipy>=1.16.1",
 ]
 
 [tool.uv.sources]
