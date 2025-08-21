@@ -31,14 +31,14 @@ class PSFConvolutionLayer2D(nn.Module):
 
 class PSFConvolutionLayer3D(nn.Module):
     def __init__(self, kernel_psf, num_channels=1):
-        kernel_size = kernel_psf.shape[0]
         super().__init__()
+        paddings = [(s - 1) // 2 for s in kernel_psf.shape]
         self.seq = nn.Sequential(
-            nn.ReplicationPad3d((kernel_size - 1) // 2),
+            nn.ReplicationPad3d(tuple(paddings[i] for i in [2, 2, 1, 1, 0, 0])),
             nn.Conv3d(
                 num_channels,
                 num_channels,
-                kernel_size,
+                kernel_psf.shape,
                 stride=1,
                 padding=0,
                 bias=False,
