@@ -7,8 +7,10 @@ from skimage.metrics import peak_signal_noise_ratio
 from skimage.metrics import structural_similarity
 
 
-def ssim(image_a, image_b):
-    return structural_similarity(image_a, image_b, multichannel=image_a.ndim == 3)
+def ssim(image_a, image_b, data_range=1):
+    return structural_similarity(
+        image_a, image_b, multichannel=image_a.ndim == 3, data_range=data_range
+    )
 
 
 def psnr(image_true, image_test):
@@ -103,7 +105,7 @@ def mutual_info_from_contingency(contingency):
     )
     log_outer = -numpy.log2(outer) + numpy.log2(pi.sum()) + numpy.log2(pj.sum())
     mi = (
-            contingency_nm * (log_contingency_nm - numpy.log2(contingency_sum))
-            + contingency_nm * log_outer
+        contingency_nm * (log_contingency_nm - numpy.log2(contingency_sum))
+        + contingency_nm * log_outer
     )
     return mi.sum()
